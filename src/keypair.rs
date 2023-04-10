@@ -83,12 +83,17 @@ impl Keypair {
         let raw_secret = StrKey::decode_ed25519_secret_seed(secret)?;
         let raw_nonce= nonce.as_bytes();
         let mut sha512 = Sha512::default();
-        let mut digest = sha512.chain(nonce).finalize();
+        let mut cloned_sha512 = sha512.clone();
+        let mut digest = sha512.chain(raw_secret.clone()).chain(nonce).finalize();
+        println!("=========================");
+        println!("raw_secret: {:?}",raw_secret);
+        println!("raw_nonce : {:?}",raw_nonce);
+        println!("sha512 {:?}",cloned_sha512);
+        println!("digest {:?}",digest);
         let seed = &digest[..32];
         let secret_key = SecretKey::from_bytes(seed).unwrap(); 
         println!("secret_key: {:?}",secret_key);
 
-        //Keypair::from_raw_ed25519_seed_with_nonce(&raw_secret, seed)
         Keypair::from_raw_ed25519_seed(seed)
     }
 
@@ -182,9 +187,12 @@ mod tests {
         println!("============TEST MASTER SECRET KEY=================");
         let seed = String::from("SAZ443I6BNR2MD3G27C4EZIEEFMKOPT4SR6IHZDLXPODEHR2GRQVIC7R");
         let pk = String::from("GACAMF2WHKKQTYVHVA3CRMVUHN6GUBLTB7PBJQF73N7ATCIYAIFUCT6B");
-        let pk_nonced1 = String::from("GD3QLDY5WWMJAGC5GUPXZ3QVXMSDU4CDLDAVBK6ZIASU2M6TRUMLX3WQ");
-        let pk_nonced2 = String::from("GAGXJDPZTKF22ILUUKF2VTB3XSIXATR7UXLPJ42Z23RJ3FTD2OTLDS4J");
-        let pk_nonced3 = String::from("GDPO3MQDV37BDDTAAQT76J6ZQ2REIX6KE3LTNNFLQU77OPZEZU7VCFVV");
+        let pk_nonced1 = String::from("GBGCG3LQHGN4ROLA5GKMKQHGTBKZGA4OIE2AZYTC6LICGHWUXX67LNY3");
+        let pk_nonced2 = String::from("GAP6JL574DJX3M36RK6SQSVKNCKOJXVUCFI2SENVC77F5VN22LDG5NHQ");
+        let pk_nonced3 = String::from("GCPYIII5KJ56KTSLECFAV7OCG2HRERMZJXMONUSHAVBI57EDX74OQRFY");
+        let seed_nonced1 = String::from("SBALFCEFFSFIVATKVUTODKNWNXDOU3ZDKZSV3RKWITOXHFNG43BJMSHS");
+        let seed_nonced2 = String::from("SBREOODXPGF3PT64QEAMGMF3GIAIFKYRMJ3PBFX2R5U6J6RNKVKJMGZB");
+        let seed_nonced3 = String::from("SDLZ2JSXKPODJMQMOSQRXPKVJZGGZDLQXL6OGEDLRFJ3JBKHJ46BBTDJ");
         let nonce1 = String::from("0000");
         let nonce2 = String::from("1234");
         let nonce3 = String::from("FWE4IF24WJ67IOQ8JWOI9EWQ3DAWD0WE");
@@ -215,7 +223,9 @@ mod tests {
         assert_eq!(pk_nonced1, keypair1.public_key());
         assert_eq!(pk_nonced2, keypair2.public_key());
         assert_eq!(pk_nonced3, keypair3.public_key());
-//        assert_eq!(seed, seed_from_keypair);
+        assert_eq!(seed_nonced1, seed_from_keypair1);
+        assert_eq!(seed_nonced2, seed_from_keypair2);
+        assert_eq!(seed_nonced3, seed_from_keypair3);
     }
 
     #[test]
