@@ -3,8 +3,11 @@ use nacl::sign::{generate_keypair, signature, verify};
 use str_key::StrKey;
 
 use crate::str_key;
+use ed25519_dalek::{ExpandedSecretKey, SecretKey, Sha512};
+use ed25519_dalek::Digest;
 
-#[derive(Debug)]
+
+#[derive(Debug, Clone)]
 pub struct Keypair {
     public_key: Vec<u8>,
     secret_key: Option<Vec<u8>>,
@@ -32,6 +35,32 @@ impl Keypair {
         })
     }
 
+    fn new_from_secret_key_with_nonce(secret_seed: Vec<u8>, nonce: Vec<u8>) -> Result<Self, anyhow::Error> {
+        if secret_seed.len() != 32 {
+            bail!("secret_key length is invalid")
+        }
+
+        let mut nonced_secret_key = secret_seed.clone();
+        println!("=======");
+        println!("nonce: {:?}",nonce);
+        println!("=======");
+        for i in 0..nonce.len(){
+            (nonced_secret_key[i],_) = nonced_secret_key[i].overflowing_add(nonce[i]);
+        };
+        let keypair = generate_keypair(&nonced_secret_key);
+        let mut pk = keypair.pkey.clone().to_vec();
+
+        let mut secret_key = Vec::new();
+        secret_key.append(&mut nonced_secret_key);
+        secret_key.append(&mut pk);
+
+        Ok(Self {
+            secret_seed: Some(nonced_secret_key),
+            public_key: keypair.pkey.to_vec(),
+            secret_key: Some(secret_key),
+        })
+    }
+
     fn new_from_public_key(public_key: Vec<u8>) -> Result<Self, anyhow::Error> {
         if public_key.len() != 32 {
             bail!("public_key length is invalid")
@@ -48,6 +77,19 @@ impl Keypair {
         let raw_secret = StrKey::decode_ed25519_secret_seed(secret)?;
 
         Keypair::from_raw_ed25519_seed(&raw_secret)
+    }
+
+    pub fn from_secret_master_key(secret: &str, nonce:&str) -> Result<Self, anyhow::Error> {
+        let raw_secret = StrKey::decode_ed25519_secret_seed(secret)?;
+        let raw_nonce= nonce.as_bytes();
+        let mut sha512 = Sha512::default();
+        let mut digest = sha512.chain(nonce).finalize();
+        let seed = &digest[..32];
+        let secret_key = SecretKey::from_bytes(seed).unwrap(); 
+        println!("secret_key: {:?}",secret_key);
+
+        //Keypair::from_raw_ed25519_seed_with_nonce(&raw_secret, seed)
+        Keypair::from_raw_ed25519_seed(seed)
     }
 
     pub fn from_public_key(public_key: &str) -> Result<Self, anyhow::Error> {
@@ -68,6 +110,11 @@ impl Keypair {
     pub fn from_raw_ed25519_seed(seed: &[u8]) -> Result<Self, anyhow::Error> {
         Self::new_from_secret_key(seed.to_vec())
     }
+
+    pub fn from_raw_ed25519_seed_with_nonce(seed: &[u8], nonce: &[u8]) -> Result<Self, anyhow::Error> {
+        Self::new_from_secret_key_with_nonce(seed.to_vec(),nonce.to_vec())
+    }
+
 
     pub fn raw_secret_key(&self) -> Option<Vec<u8>> {
         self.secret_seed.clone()
@@ -115,6 +162,8 @@ impl Keypair {
         Self::new_from_secret_key(rand::random::<[u8; 32]>().to_vec())
     }
 
+
+
     // fn master
     // fn xdr_account_id
     // fn xdr_public_key
@@ -127,6 +176,47 @@ impl Keypair {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_from_master_secret_key() {
+        println!("============TEST MASTER SECRET KEY=================");
+        let seed = String::from("SAZ443I6BNR2MD3G27C4EZIEEFMKOPT4SR6IHZDLXPODEHR2GRQVIC7R");
+        let pk = String::from("GACAMF2WHKKQTYVHVA3CRMVUHN6GUBLTB7PBJQF73N7ATCIYAIFUCT6B");
+        let pk_nonced1 = String::from("GD3QLDY5WWMJAGC5GUPXZ3QVXMSDU4CDLDAVBK6ZIASU2M6TRUMLX3WQ");
+        let pk_nonced2 = String::from("GAGXJDPZTKF22ILUUKF2VTB3XSIXATR7UXLPJ42Z23RJ3FTD2OTLDS4J");
+        let pk_nonced3 = String::from("GDPO3MQDV37BDDTAAQT76J6ZQ2REIX6KE3LTNNFLQU77OPZEZU7VCFVV");
+        let nonce1 = String::from("0000");
+        let nonce2 = String::from("1234");
+        let nonce3 = String::from("FWE4IF24WJ67IOQ8JWOI9EWQ3DAWD0WE");
+        println!("seed {:?}",seed);
+        println!("pk {:?}",pk);
+        println!("nonce1 {:?}",nonce1);
+        println!("nonce2 {:?}",nonce2);
+        println!("nonce3 {:?}",nonce3);
+
+        let mut keypair1 = Keypair::from_secret_master_key(&seed,&nonce1).unwrap();
+        let mut keypair2 = Keypair::from_secret_master_key(&seed,&nonce2).unwrap();
+        let mut keypair3 = Keypair::from_secret_master_key(&seed,&nonce3).unwrap();
+        let seed_from_keypair1 = keypair1.secret_key().unwrap();
+        let seed_from_keypair2 = keypair2.secret_key().unwrap();
+        let seed_from_keypair3 = keypair3.secret_key().unwrap();
+
+        println!("keypair1: {:?}",keypair1.clone());
+        println!("keypair1 pk: {:?}",keypair1.public_key());
+        println!("seed from keypair1: {:?}",seed_from_keypair1.clone());
+        println!("keypair2: {:?}",keypair2.clone());
+        println!("keypair2 pk: {:?}",keypair2.public_key());
+        println!("seed from keypair2: {:?}",seed_from_keypair2.clone());
+        println!("keypair3: {:?}",keypair3.clone());
+        println!("keypair3 pk: {:?}",keypair3.public_key());
+        println!("seed from keypair3: {:?}",seed_from_keypair3.clone());
+        println!("============TEST MASTER SECRET KEY END=============");
+
+        assert_eq!(pk_nonced1, keypair1.public_key());
+        assert_eq!(pk_nonced2, keypair2.public_key());
+        assert_eq!(pk_nonced3, keypair3.public_key());
+//        assert_eq!(seed, seed_from_keypair);
+    }
 
     #[test]
     fn test_from_secret_key() {
