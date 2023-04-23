@@ -69,7 +69,7 @@ pub struct Operation {
     pub value: Option<String>,
     pub bump_to: Option<String>,
     pub asset: Option<String>,
-    pub claimants: Option<Claimant>,
+    pub claimants: Option<Vec<Claimant>>,
     pub balance_id: Option<String>,
     pub claimant: Option<String>,
     pub sponsor: Option<String>,
