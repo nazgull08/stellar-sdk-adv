@@ -193,8 +193,8 @@ mod tests {
         let seed_nonced1 = String::from("SBALFCEFFSFIVATKVUTODKNWNXDOU3ZDKZSV3RKWITOXHFNG43BJMSHS");
         let seed_nonced2 = String::from("SBREOODXPGF3PT64QEAMGMF3GIAIFKYRMJ3PBFX2R5U6J6RNKVKJMGZB");
         let seed_nonced3 = String::from("SDLZ2JSXKPODJMQMOSQRXPKVJZGGZDLQXL6OGEDLRFJ3JBKHJ46BBTDJ");
-        let nonce1 = String::from("0000");
-        let nonce2 = String::from("1234");
+        let nonce1 = String::from("0");
+        let nonce2 = String::from("1");
         let nonce3 = String::from("FWE4IF24WJ67IOQ8JWOI9EWQ3DAWD0WE");
         println!("seed {:?}",seed);
         println!("pk {:?}",pk);
