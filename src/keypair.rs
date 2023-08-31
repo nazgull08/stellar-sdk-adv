@@ -85,14 +85,8 @@ impl Keypair {
         let mut sha512 = Sha512::default();
         let mut cloned_sha512 = sha512.clone();
         let mut digest = sha512.chain(raw_secret.clone()).chain(nonce).finalize();
-        println!("=========================");
-        println!("raw_secret: {:?}",raw_secret);
-        println!("raw_nonce : {:?}",raw_nonce);
-        println!("sha512 {:?}",cloned_sha512);
-        println!("digest {:?}",digest);
         let seed = &digest[..32];
         let secret_key = SecretKey::from_bytes(seed).unwrap(); 
-        println!("secret_key: {:?}",secret_key);
 
         Keypair::from_raw_ed25519_seed(seed)
     }
